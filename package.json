@@ -1,0 +1,26 @@
+{
+  "name": "netvis",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host ::",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore"
+  },
+  "dependencies": {
+    "cytoscape": "^3.29.2",
+    "cytoscape-cose-bilkent": "^4.1.0",
+    "cytoscape-popper": "^4.0.0",
+    "cytoscape-svg": "^0.4.0",
+    "eventemitter3": "^5.0.1",
+    "tippy.js": "^6.3.7",
+    "vue": "^3.4.15"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.3",
+    "@vitejs/plugin-vue-jsx": "^5.1.2",
+    "vite": "^7.2.6"
+  }
+}
