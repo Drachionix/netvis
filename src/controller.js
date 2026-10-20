@@ -56,14 +56,12 @@ class Controller {
     }
 
     runLayout() {
-        // this.cy.elements().layout({ name: "cose-bilkent" }).run()
         this.cy.undoRedo().do("layout", {
             options: { name: "cose-bilkent" }
         })
     }
 
     selectedLayout() {
-        // this.cy.elements(':selected').layout({ name: "cose-bilkent", fit: false }).run()
         this.cy.undoRedo().do("layout", {
             eles: cy.nodes(':selected'),
             options: { name: "cose-bilkent", fit: false }
@@ -176,9 +174,6 @@ class Controller {
             node => {
                 if ( node.type === "area" ) {
                     return
-                    // node.children.forEach(child => {
-                    //     cy.remove(cy.getElementById(child))
-                    // })
                 }
                 let addedNode = cy.undoRedo().do("add", { data: node })
                 this.connectMissingNeighbors(addedNode.element())
@@ -198,6 +193,7 @@ class Controller {
             async (res) => {
                 if ( !res.ok ) {
                     let text = await res.text()
+                    console.log(res)
                     throw text;
                 }
                 return res.json()
@@ -213,7 +209,7 @@ class Controller {
             async (res) => {
                 if ( !res.ok ) {
                     let text = await res.text()
-                    await console.log(res)
+                    console.log(res)
                     throw text;
                 }
                 return res.json()
