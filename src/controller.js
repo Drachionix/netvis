@@ -187,9 +187,7 @@ class Controller {
     }
 
     async getDataFromBackend(name, v6) {
-        const backendUrl = new URL("backend/get", document.baseURI)
-        backendUrl.searchParams.set("id", name)
-        return await fetch(backendUrl).then(
+        return await fetch("backend/get?id=" + name + "&v6=" + v6).then(
             async (res) => {
                 if ( !res.ok ) {
                     let text = await res.text()
@@ -202,10 +200,7 @@ class Controller {
     }
 
     async getPathFromBackend(path) {
-        const backendUrl = new URL("backend/path", document.baseURI)
-        backendUrl.searchParams.set("source", path.source)
-        backendUrl.searchParams.set("destination", path.destination)
-        return await fetch(backendUrl).then(
+        return await fetch("backend/path?source=" + path.source + "&destination=" + path.destination).then(
             async (res) => {
                 if ( !res.ok ) {
                     let text = await res.text()
