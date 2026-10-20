@@ -206,7 +206,7 @@ class Controller {
     }
 
     async getPathFromBackend(path) {
-        const backendUrl = new URL("backend/get", document.baseURI)
+        const backendUrl = new URL("backend/path", document.baseURI)
         backendUrl.searchParams.set("source", path.source)
         backendUrl.searchParams.set("destination", path.destination)
         return await fetch(backendUrl).then(
