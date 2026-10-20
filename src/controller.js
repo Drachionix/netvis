@@ -71,15 +71,23 @@ class Controller {
     }
 
     selectedNeighbors() {
+        if ( this.cy.elements(':selected').length === 0 ) {
+            this.selectAll()
+        }
         this.cy.elements(':selected').forEach(s => this.showAllNeighbors(s.data("neighbors")))
+        this.cy.elements().unselect()
     }
 
     showAllNeighbors(neighbors) {
         if ( neighbors ) {
             let neigh = []
-            neighbors.filter(n => !n.id.startsWith("area:")).forEach(n => neigh.push(n))
+            neighbors.filter(n => !n.id.startsWith("area:") && this.cy.getElementById(n.id).length !== 1).forEach(n => neigh.push(n))
             this.showNode(neigh, false)
         }
+    }
+
+    selectAll() {
+        this.cy.elements().select()
     }
 
     centerGraph() {
