@@ -63,7 +63,7 @@ class Controller {
 
     selectedLayout() {
         this.cy.undoRedo().do("layout", {
-            eles: cy.nodes(':selected'),
+            eles: this.cy.nodes(':selected'),
             options: { name: "cose-bilkent", fit: false }
         })
     }

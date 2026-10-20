@@ -64,12 +64,9 @@ let style = [
     {
         selector: ':selected',
         style: {
-            // 'background-color': '#ff4212',
             "border-width": "5px",
-            // "border-color": "#ff4112",
             "border-color": "#000",
             "border-opacity": "0.25",
-            // "border-offset": "5em",
         }
     },
     {
@@ -78,12 +75,7 @@ let style = [
             'width': 3,
             'line-color': '#ccc',
             'curve-style': 'straight',
-            // 'line-style': 'dashed',
-            // 'line-dash-pattern': ['12', '6'],
-            // 'target-arrow-shape': 'triangle',
-            // 'target-arrow-width': '100em',
             'arrow-scale': '2',
-            // 'target-endpoint': 'outside-to-node-or-label',
         }
     },
     {
