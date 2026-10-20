@@ -184,7 +184,9 @@ class Controller {
     }
 
     async getDataFromBackend(name, v6) {
-        return await fetch("/netvis/backend/get?id=" + name + "&v6=" + v6).then(
+        const backendUrl = new URL("backend/get", document.baseURI)
+        backendUrl.searchParams.set("id", name)
+        return await fetch(backendUrl).then(
             async (res) => {
                 if ( !res.ok ) {
                     let text = await res.text()
@@ -196,7 +198,10 @@ class Controller {
     }
 
     async getPathFromBackend(path) {
-        return await fetch("/netvis/backend/path?source=" + path.source + "&destination=" + path.destination).then(
+        const backendUrl = new URL("backend/get", document.baseURI)
+        backendUrl.searchParams.set("source", path.source)
+        backendUrl.searchParams.set("destination", path.destination)
+        return await fetch(backendUrl).then(
             async (res) => {
                 if ( !res.ok ) {
                     let text = await res.text()
