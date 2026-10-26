@@ -1,5 +1,6 @@
 <script setup>
-import { ref } from "vue";
+import { ref, shallowRef } from "vue";
+import { parseObjects } from "@/local-objects.js";
 
 const props = defineProps({
   node: {
@@ -10,6 +11,10 @@ const props = defineProps({
   path: {
     source: String,
     destination: String
+  },
+  localObjects: {
+    type: Map,
+    default: null
   }
 })
 
@@ -17,28 +22,62 @@ const emit = defineEmits(['submitted'])
 const initName = props.node.name
 const node = ref(props.node)
 const path = ref(props.path)
-const style = "width: " + (initName ? "49%" : "100%")
+const localObjects = shallowRef(props.localObjects)
+const fileName = ref("")
+const fileError = ref("")
+const loading = ref(false)
 const title = import.meta.env.VITE_APP_TITLE
 
 
 function submitHandler() {
+  if ( loading.value ) return
   if ( node.value.name === "" ) node.value.name = initName
-  console.log("Submit ", node.value, path.value)
-  emit('submitted', node.value, path.value)
+  if ( localObjects.value && !localObjects.value.has(node.value.name) && node.value.name ) {
+    fileError.value = `Objekt ${node.value.name} nicht in der geladenen Topologie gefunden.`
+    return
+  }
+  emit('submitted', node.value, localObjects.value ? undefined : path.value, localObjects.value)
 }
 
-function onFileChanged(event) {
-  let reader = new FileReader()
-  reader.onload = (e) => {
-    try {
-      let data = JSON.parse(e.target.result)
-      emit('submitted', data)
-    } catch (e) {
-      console.error("Die Datei \"" + event.target.files[0].name + "\" enthält kein gültiges JSON")
-      console.warn(e)
-    }
+async function onObjectsChanged(event) {
+  const file = event.target.files[0]
+  if ( !file ) return
+  loading.value = true
+  fileError.value = ""
+  try {
+    localObjects.value = parseObjects(await file.text())
+    fileName.value = file.name
+  } catch (error) {
+    fileError.value = `„${file.name}“ konnte nicht geladen werden: ${error.message}`
+  } finally {
+    loading.value = false
+    event.target.value = ""
   }
-  reader.readAsText(event.target.files[0])
+}
+
+async function onFileChanged(event) {
+  const file = event.target.files[0]
+  if ( !file ) return
+  loading.value = true
+  fileError.value = ""
+  try {
+    const data = JSON.parse(await file.text())
+    if ( !Array.isArray(data) || data.some(n =>
+        !n || !n.data || typeof n.data.id !== "string"
+    ) ) throw new Error("Es wird ein gespeicherter netvis-Graph erwartet.")
+    emit('submitted', data, undefined, localObjects.value)
+  } catch (error) {
+    fileError.value = `„${file.name}“ konnte nicht geladen werden: ${error.message}`
+  } finally {
+    loading.value = false
+    event.target.value = ""
+  }
+}
+
+function useBackend() {
+  localObjects.value = null
+  fileName.value = ""
+  fileError.value = ""
 }
 
 </script>
@@ -48,6 +87,10 @@ function onFileChanged(event) {
     <div class="form">
       <form @submit.prevent="submitHandler">
         <div class="title">{{ title }}</div>
+        <div v-if="initName && localObjects" class="data-source">
+          Topologie {{ fileName }}: {{ localObjects.size }} Objekte geladen.
+        </div>
+        <p v-if="fileError" class="file-error" role="alert" style="margin-bottom: 20px">{{ fileError }}</p>
         <div class="inputContainer">
           <input type="text" :placeholder="node.name || initName" @input="e => node.name = e.target.value" class="input"
                  id="object"/>
@@ -58,14 +101,26 @@ function onFileChanged(event) {
             <span class="slider round"/>
             <p>IPv6</p>
           </label>
-          <input type="text" class="input" id="source" style="width: 49%" :placeholder="path.source"
-                 v-if="initName" @input="e => path.source = e.target.value"/>
-          <input type="text" class="input" id="destination" style="width: 49%; margin-left: 5px;"
-                 :placeholder="path.destination" v-if="initName"
+          <input type="text" class="input" id="source" :placeholder="path.source"
+                 v-if="initName && !localObjects" @input="e => path.source = e.target.value"/>
+          <input type="text" class="input" id="destination"
+                 :placeholder="path.destination" v-if="initName && !localObjects"
                  @input="e => path.destination = e.target.value"/><br>
-          <button class="submit" type="submit" :style="style">Anzeigen</button>
-          <label for="file-upload" v-if="initName" class="submit loadFile">JSON Laden</label>
-          <input id="file-upload" type="file" @change="onFileChanged" accept="application/json" class="hidden"/>
+          <button class="submit" type="submit" :disabled="loading">Anzeigen</button>
+          <div v-if="initName" class="buttonRow">
+            <label v-if="localObjects" class="submit">
+              <button class="submit" type="button" @click="useBackend" :disabled="loading">Backend verwenden</button>
+            </label>
+            <label v-else class="submit">Topologie laden
+              <input id="objects-upload" type="file" @change="onObjectsChanged" accept=".json,application/json"
+                     :disabled="loading" class="hidden"/>
+            </label>
+            <label class="submit">Graph Laden
+              <input id="file-upload" type="file" @change="onFileChanged" accept=".json,application/json"
+                     :disabled="loading" class="hidden"/>
+            </label>
+          </div>
+
         </div>
       </form>
     </div>
@@ -82,9 +137,20 @@ function onFileChanged(event) {
   background-color: #cecece;
   box-shadow: 0 0 5px #ff4212;
   border-radius: 5px;
-  padding: 0 10px 120px;
+  padding: 0 10px 20px;
   z-index: 10;
-  height: 340px;
+}
+
+.data-source {
+  margin-bottom: 20px;
+  width: 100%;
+  color: #303245;
+}
+
+.file-error {
+  color: #9c1600;
+  width: 100%;
+  max-width: 500px;
 }
 
 .title {
@@ -100,7 +166,6 @@ function onFileChanged(event) {
 }
 
 .inputContainer {
-  height: 50px;
   position: relative;
   width: 100%;
 }
@@ -112,10 +177,11 @@ function onFileChanged(event) {
   box-sizing: border-box;
   color: #eee;
   font-size: 18px;
-  height: 100%;
+  height: 50px;
   outline: 0;
   padding: 4px 20px 0;
   width: 100%;
+  margin: 10px 0 0 0;
 
   &::placeholder {
     display: block;
@@ -171,19 +237,28 @@ function onFileChanged(event) {
   cursor: pointer;
   font-size: 18px;
   height: 50px;
-  margin-top: 5px;
+  margin-top: 10px;
   text-align: center;
+  width: 100%;
+}
+
+.buttonRow {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.buttonRow .submit {
+  flex: 1 1 0;
+  min-width: 0;
+  margin-top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .submit:active {
   background-color: var(--buttonActiveColor);
-}
-
-.loadFile {
-  margin-left: 5px;
-  padding: 15px 0;
-  display: inline-block;
-  width: 49%;
 }
 
 .switch {

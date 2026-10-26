@@ -18,9 +18,9 @@ onMounted(() => {
     err.value.push(e.toString())
     console.log(e)
     let interval = setInterval(() => {
-      err.value = null
+      err.value = []
       clearInterval(interval)
-      if ( cy.elements().length === 0 ) location.reload()
+      if ( cy.elements().length === 0 && !controller.localObjects ) location.reload()
     }, 10000)
   })
 

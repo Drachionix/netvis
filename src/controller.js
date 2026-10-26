@@ -2,8 +2,9 @@ import EventEmitter from 'eventemitter3'
 import tippy from "tippy.js"
 
 class Controller {
-    constructor({ cy }) {
+    constructor({ cy, localObjects = null }) {
         this.cy = cy
+        this.localObjects = localObjects
         this.bus = new EventEmitter()
         this.options = {
             autolayout: true,
@@ -113,24 +114,22 @@ class Controller {
         })
     }
 
-    showPath(path) {
-        let pathNodes = this.getPathFromBackend(path)
-        let nodes = []
-        Promise.resolve(pathNodes).then((res) => {
-            res.forEach(node => nodes.push({ id: node }))
-            this.showNode(nodes.filter(n => !n.id.startsWith("network:tunnel") || !n.id.startsWith("interface:")), false)
-                .then(() => {
-                        this.runLayout()
-                        this.cy.elements().unselect()
-                    }
-                )
-        })
-        this.options.autolayout = false
+    async showPath(path) {
+        try {
+            const nodes = await this.getPathFromBackend(path)
+            this.options.autolayout = false
+            if ( await this.showNode(nodes.map(id => ({ id })), false) ) {
+                this.runLayout()
+                this.cy.elements().unselect()
+            }
+        } catch (err) {
+            this.bus.emit('showErr', err)
+        }
     }
 
     showSingleNode(name, v6) {
         let nodeCount = this.cy.elements().length
-        Promise.resolve(this.addNode(name, v6)).then(() => {
+        return Promise.resolve(this.addNode(name, v6)).then(() => {
             if ( nodeCount !== this.cy.elements().length && this.options.autolayout )
                 this.runLayout()
         })
@@ -143,7 +142,7 @@ class Controller {
         let nodesData = []
         name.forEach((n) => {
             if ( n.id.startsWith("interface") || n.id.startsWith("network:tunnel") ) return
-            promises.push(this.getDataFromBackend(n.id, v6).then(
+            promises.push(this.getNodeData(n.id, v6).then(
                 node => {
                     nodesData.push({ data: node })
                 }
@@ -158,6 +157,9 @@ class Controller {
             if ( nodeCount !== this.cy.elements().length && this.options.autolayout )
                 this.runLayout()
             return true
+        }).catch(err => {
+            this.bus.emit('showErr', err)
+            return false
         })
 
     }
@@ -170,7 +172,7 @@ class Controller {
             if ( this.options.autoselect ) this.nodeSelect(elements[0])
             return
         }
-        return this.getDataFromBackend(name, v6).then(
+        return this.getNodeData(name, v6).then(
             node => {
                 if ( node.type === "area" ) {
                     return
@@ -184,6 +186,15 @@ class Controller {
                 this.bus.emit('showErr', err)
             }
         )
+    }
+
+    async getNodeData(name, v6) {
+        if ( this.localObjects !== null ) {
+            const node = this.localObjects.get(name)
+            if ( !node ) throw new Error(`Objekt ${name} nicht in der geladenen Topologie gefunden.`)
+            return structuredClone(node)
+        }
+        return this.getDataFromBackend(name, v6)
     }
 
     async getDataFromBackend(name, v6) {
@@ -200,6 +211,9 @@ class Controller {
     }
 
     async getPathFromBackend(path) {
+        if ( this.localObjects !== null ) {
+            throw new Error("Die Pfadanzeige ist mit einer lokalen Topologie nicht verfügbar.")
+        }
         return await fetch("backend/path?source=" + path.source + "&destination=" + path.destination).then(
             async (res) => {
                 if ( !res.ok ) {
@@ -216,12 +230,12 @@ class Controller {
         )
     }
 
-    updateNodeDataFromBackend() {
+    updateNodeData() {
         const { cy } = this
         let promises = []
         cy.nodes().forEach(n => {
             promises.push(
-                this.getDataFromBackend(n.id(), n.data("v6")).then(
+                this.getNodeData(n.id(), n.data("v6")).then(
                     result => n.data(result)
                 ).catch(
                     err => {
@@ -231,7 +245,7 @@ class Controller {
                 )
             )
         })
-        Promise.all(promises).then(() => {
+        return Promise.all(promises).then(() => {
             cy.nodes().forEach(n => {
                 this.connectMissingNeighbors(n)
             })
@@ -242,7 +256,7 @@ class Controller {
         const { cy } = this
         cy.add(nodes)
         cy.fit()
-        this.updateNodeDataFromBackend()
+        return this.updateNodeData()
     }
 
     nodeSelect(node) {

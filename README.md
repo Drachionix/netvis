@@ -12,7 +12,12 @@ netvis zeigt Router und Netze aus einer Netspoc-Konfiguration als Graph an.
 
 - **Startobjekt wählen**: Beim Start wird ein Netspoc-Objekt angegeben (z. B. `router:internet-netze`), wahlweise mit
   IPv6.
-- **Pfadanzeige**: Zeigt den Pfad zwischen Quelle und Ziel (über das Netspoc-Tool `print-path`).
+- **Lokale Topologie**: Auf der Startseite kann eine mit `export-netvis` erzeugte Topologie-Datei ausgewählt werden.
+  Danach kann ein Objekt aus dieser Datei angeben werden und mit „Anzeigen“ im Graphen dargestellt.
+  Die Topologie-Datei wird ausschließlich im Browser eingelesen und geprüft.
+  Objekte und Nachbarn werden ohne Backend-Anfragen aus dem lokalen Speicher geladen.
+  Die Pfadanzeige ist in diesem Modus nicht verfügbar. „Backend verwenden“ wechselt vor dem Start zurück.
+- **Pfadanzeige**: Zeigt im Backend-Modus den Pfad zwischen Quelle und Ziel (über das Netspoc-Tool `print-path`).
 - **Nachbarn erkunden**: Im Info-Panel lassen sich einzelne oder alle Nachbarn eines Knotens nachladen. Über „Zeige
   Nachbarn“ werden die Nachbarn aller markierten Knoten (ohne Markierung: aller Knoten) eingeblendet.
 - **Info-Panel**: Zeigt Nachbarn, Interfaces und Hosts des ausgewählten Objekts. Tooltips zeigen Area,
@@ -46,10 +51,15 @@ Browser (Vue 3 + Cytoscape.js)
         ▼
 Go-Backend  ──►  objects.json   (Netspoc-Objekte, im Speicher gehalten)
             └─►  print-path     (externes Netspoc-Tool)
+
+Alternativ ohne Backend:
+objects.json ──► Datei-Auswahl im Browser ──► lokaler Objektspeicher ──► Graph
 ```
 
 - **Frontend** (`src/`): Vue 3, Vite, Cytoscape.js mit den Erweiterungen `cose-bilkent`, `popper`, `svg` sowie einem
   eigenen Undo/Redo (`cytoscape-undo-redo.js`). Die Logik liegt im `Controller` (`src/controller.js`).
+  Dieser verwendet entweder den lokalen Objektspeicher oder das Backend als Datenquelle. Beim lokalen Import
+  (`src/local-objects.js`) werden die beiden Objekt-Maps nach ID indiziert und leere Listen (`null`) normalisiert.
 - **Backend** (`backend/backend.go`): Kleiner HTTP-Server in Go ohne externe Abhängigkeiten.
 
 ## Backend
@@ -157,6 +167,12 @@ LISTENPORT=5042 \
 
 ## Frontend
 
+Für den lokalen Modus genügt die statisch ausgelieferte Anwendung. Backend, `print-path` und Änderungen an der
+Webserver-Konfiguration sind dafür nicht erforderlich. Die hochgeladene Topologie bleibt nur bis zum Neuladen
+der Seite im Browser-Speicher und wird nicht an einen Server übertragen. Gespeicherte Graphen enthalten weiterhin
+nur Knoten-IDs und Positionen, nicht die Topologie: Zum Wiederöffnen im lokalen Modus zuerst eine passende Topologie
+auswählen und anschließend über „JSON Laden“ den gespeicherten Graphen laden.
+
 Voraussetzungen: Node.js und npm.
 
 ```sh
@@ -171,6 +187,7 @@ npm run dev
 
 Der Vite-Dev-Server leitet Anfragen an `/backend` an `http://localhost:5042` weiter (siehe `vite.config.js`). Das
 Backend sollte daher auf Port `5042` laufen. Der Titel der Anwendung stammt aus `.env.development`.
+Mit `npm test` lassen sich die Tests für den lokalen Import und die Datenquellen des Controllers ausführen.
 
 ### Produktion
 
@@ -178,9 +195,9 @@ Backend sollte daher auf Port `5042` laufen. Der Titel der Anwendung stammt aus 
 npm run build
 ```
 
-Das Ergebnis liegt in `dist/`. Das Frontend ruft das Backend über den relativen Pfad `backend/…` auf. Ein Webserver muss
-daher die statischen Dateien ausliefern und Anfragen unter `/backend/` an das Go-Backend weiterleiten, wobei das Präfix
-`/backend` entfernt wird. Der Titel stammt aus `.env.production`.
+Das Ergebnis liegt in `dist/`. Im Backend-Modus ruft das Frontend das Backend über den relativen Pfad `backend/…` auf.
+Ein Webserver muss daher die statischen Dateien ausliefern und Anfragen unter `/backend/` an das Go-Backend
+weiterleiten, wobei das Präfix `/backend` entfernt wird. Der Titel stammt aus `.env.production`.
 
 Beispiel für Apache (mit `mod_proxy` und `mod_proxy_http`):
 

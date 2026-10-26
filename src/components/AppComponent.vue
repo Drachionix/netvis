@@ -46,7 +46,8 @@ const cy = new Cytoscape({
   wheelSensitivity: 0.1
 })
 
-const controller = new Controller({ cy })
+const props = defineProps(['node', 'path', 'localObjects'])
+const controller = new Controller({ cy, localObjects: props.localObjects })
 const bus = controller.bus
 const infoNode = ref()
 const showLoader = ref()
@@ -65,6 +66,10 @@ onMounted(() => {
   }))
 
   document.addEventListener("keydown", onKeyDown = (e) => {
+    if ( showLoader.value && e.key === "Escape" ) {
+      showLoader.value = false
+      return
+    }
     if ( !e.ctrlKey || e.ctrlKey &&
         e.key !== 's' && e.key !== 'e' &&
         e.key !== 'z' && e.key !== 'y' && e.key !== 'Z' ) {
@@ -78,8 +83,6 @@ onMounted(() => {
     if ( e.key === 'Z' || e.key === 'y' ) cy.undoRedo().redo()
   })
 })
-
-defineProps(['node', 'path'])
 
 onBeforeUnmount(() => {
   bus.removeListener('showInfo', onShowInfo)
@@ -101,7 +104,8 @@ function showLoaderHandler() {
 </script>
 
 <template>
-  <LoaderComponent v-if="showLoader" :node="{name:'', v6: false}" @submitted="submitHandler"/>
+  <LoaderComponent v-if="showLoader" :node="{name:'', v6: false}" :localObjects="localObjects"
+                   @submitted="submitHandler"/>
   <CytoscapeComponent :cy="cy" :controller="controller" :node="node" :path="path"/>
   <NodeInfoComponent v-if="infoNode" :cy="cy" :node="infoNode" :controller="controller"/>
   <LegendComponent/>
