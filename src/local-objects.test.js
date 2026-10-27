@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import test from "node:test"
-import { parseObjects } from "./local-objects.js"
+import { parseObjects, parseJsonFile } from "./local-objects.js"
 
 const topology = () => ({
     router: {
@@ -19,6 +19,22 @@ const topology = () => ({
             neighbors: null,
             hosts: null
         }
+    }
+})
+
+test("detects topology and graph by JSON content", () => {
+    const objects = parseJsonFile(JSON.stringify(topology())).objects
+    assert.ok(objects instanceof Map)
+    assert.equal(objects.size, 2)
+    const graph = [{ data: { id: "router:edge" }, position: { x: 10, y: 20 } }]
+    assert.deepEqual(parseJsonFile(JSON.stringify(graph)), { graph })
+    assert.deepEqual(parseJsonFile("[]"), { graph: [] })
+})
+
+test("rejects invalid files without accepting malformed graphs or topologies", () => {
+    for (const text of ["{", "null", "42", "{}", "[null]", '[{"data":{"id":42}}]',
+        JSON.stringify({ router: {}, network: {} })]) {
+        assert.throws(() => parseJsonFile(text))
     }
 })
 

@@ -12,7 +12,10 @@ netvis zeigt Router und Netze aus einer Netspoc-Konfiguration als Graph an.
 
 - **Startobjekt wählen**: Beim Start wird ein Netspoc-Objekt angegeben (z. B. `router:internet-netze`), wahlweise mit
   IPv6.
-- **Lokale Topologie**: Auf der Startseite kann eine mit `export-netvis` erzeugte Topologie-Datei ausgewählt werden.
+- **JSON laden**: Auf der Startseite lassen sich über „JSON laden“ oder per Drag-and-drop auf den Startdialog
+  JSON-Dateien laden. Durch den Inhalt wird automatisch entschieden, ob eine lokale Topologie oder ein gespeicherter
+  Graph geladen wird. Es wird jeweils genau eine Datei angenommen.
+- **Lokale Topologie**: Auf der Startseite kann eine mit `export-netvis` erzeugte Topologie-Datei geladen werden.
   Danach kann ein Objekt aus dieser Datei angeben werden und mit „Anzeigen“ im Graphen dargestellt.
   Die Topologie-Datei wird ausschließlich im Browser eingelesen und geprüft.
   Objekte und Nachbarn werden ohne Backend-Anfragen aus dem lokalen Speicher geladen.
@@ -171,7 +174,7 @@ Für den lokalen Modus genügt die statisch ausgelieferte Anwendung. Backend, `p
 Webserver-Konfiguration sind dafür nicht erforderlich. Die hochgeladene Topologie bleibt nur bis zum Neuladen
 der Seite im Browser-Speicher und wird nicht an einen Server übertragen. Gespeicherte Graphen enthalten weiterhin
 nur Knoten-IDs und Positionen, nicht die Topologie: Zum Wiederöffnen im lokalen Modus zuerst eine passende Topologie
-auswählen und anschließend über „JSON Laden“ den gespeicherten Graphen laden.
+laden und anschließend über „JSON laden“ oder Drag-and-drop den gespeicherten Graphen laden.
 
 Voraussetzungen: Node.js und npm.
 

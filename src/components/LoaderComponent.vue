@@ -1,6 +1,6 @@
 <script setup>
 import { ref, shallowRef } from "vue";
-import { parseObjects } from "@/local-objects.js";
+import { parseJsonFile } from "@/local-objects.js";
 
 const props = defineProps({
   node: {
@@ -26,6 +26,8 @@ const localObjects = shallowRef(props.localObjects)
 const fileName = ref("")
 const fileError = ref("")
 const loading = ref(false)
+const dragDepth = ref(0)
+const fileInput = ref()
 const title = import.meta.env.VITE_APP_TITLE
 
 
@@ -39,39 +41,45 @@ function submitHandler() {
   emit('submitted', node.value, localObjects.value ? undefined : path.value, localObjects.value)
 }
 
-async function onObjectsChanged(event) {
-  const file = event.target.files[0]
-  if ( !file ) return
+async function loadFiles(files) {
+  if ( !initName || loading.value || !files?.length ) return
+  if ( files.length !== 1 ) {
+    fileError.value = "Bitte genau eine JSON-Datei laden."
+    return
+  }
+  const file = files[0]
   loading.value = true
   fileError.value = ""
   try {
-    localObjects.value = parseObjects(await file.text())
-    fileName.value = file.name
+    const result = parseJsonFile(await file.text())
+    if ( result.objects ) {
+      localObjects.value = result.objects
+      fileName.value = file.name
+    } else {
+      emit('submitted', result.graph, undefined, localObjects.value)
+    }
   } catch (error) {
     fileError.value = `${file.name}: ${error.message}`
   } finally {
     loading.value = false
-    event.target.value = ""
   }
 }
 
 async function onFileChanged(event) {
-  const file = event.target.files[0]
-  if ( !file ) return
-  loading.value = true
-  fileError.value = ""
   try {
-    const data = JSON.parse(await file.text())
-    if ( !Array.isArray(data) || data.some(n =>
-        !n || !n.data || typeof n.data.id !== "string"
-    ) ) throw new Error("Es wird ein gespeicherter netvis-Graph erwartet.")
-    emit('submitted', data, undefined, localObjects.value)
-  } catch (error) {
-    fileError.value = `${file.name}: ${error.message}`
+    await loadFiles(event.target.files)
   } finally {
-    loading.value = false
     event.target.value = ""
   }
+}
+
+function onDragEnter(event) {
+  if ( initName && event.dataTransfer?.types.includes("Files") ) dragDepth.value++
+}
+
+function onDrop(event) {
+  dragDepth.value = 0
+  return loadFiles(event.dataTransfer?.files)
 }
 
 function useBackend() {
@@ -83,8 +91,10 @@ function useBackend() {
 </script>
 
 <template>
-  <div class="loader">
-    <div class="form">
+  <div class="loader"
+       @dragenter.prevent="onDragEnter" @dragover.prevent
+       @dragleave.prevent="dragDepth = Math.max(0, dragDepth - 1)" @drop.prevent="onDrop">
+    <div class="form" :class="{ dragging: dragDepth > 0 }">
       <form @submit.prevent="submitHandler">
         <div class="title">{{ title }}</div>
         <div v-if="initName && localObjects" class="data-source">
@@ -108,19 +118,13 @@ function useBackend() {
                  @input="e => path.destination = e.target.value"/><br>
           <button class="submit" type="submit" :disabled="loading">Anzeigen</button>
           <div v-if="initName" class="buttonRow">
-            <label v-if="localObjects" class="submit">
-              <button class="submit" type="button" @click="useBackend" :disabled="loading">Backend verwenden</button>
-            </label>
-            <label v-else class="submit">Topologie laden
-              <input id="objects-upload" type="file" @change="onObjectsChanged" accept=".json,application/json"
-                     :disabled="loading" class="hidden"/>
-            </label>
-            <label class="submit">Graph Laden
-              <input id="file-upload" type="file" @change="onFileChanged" accept=".json,application/json"
-                     :disabled="loading" class="hidden"/>
-            </label>
+            <button v-if="localObjects" class="submit" type="button" @click="useBackend"
+                    :disabled="loading">Backend verwenden
+            </button>
+            <button class="submit" type="button" @click="fileInput.click()" :disabled="loading">JSON laden</button>
           </div>
-
+          <input v-if="initName" ref="fileInput" id="file-upload" type="file" @change="onFileChanged"
+                 accept=".json,application/json" :disabled="loading" class="hidden"/>
         </div>
       </form>
     </div>
@@ -137,9 +141,14 @@ function useBackend() {
   background-color: #cecece;
   box-shadow: 0 0 5px #ff4212;
   border-radius: 5px;
-  padding: 0 10px 20px;
+  padding: 0 10px;
   z-index: 10;
 }
+
+.form.dragging {
+  outline: 3px dashed var(--buttonColor);
+}
+
 
 .data-source {
   margin-bottom: 20px;

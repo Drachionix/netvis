@@ -3,7 +3,21 @@ function isRecord(value) {
 }
 
 export function parseObjects(text) {
+    return objectsFromData(JSON.parse(text))
+}
+
+export function parseJsonFile(text) {
     const data = JSON.parse(text)
+    if ( Array.isArray(data) ) {
+        if ( data.some(n => !isRecord(n) || !isRecord(n.data) || typeof n.data.id !== "string") ) {
+            throw new Error("Es wird ein gespeicherter netvis-Graph mit gültigen Knoten-IDs erwartet.")
+        }
+        return { graph: data }
+    }
+    return { objects: objectsFromData(data) }
+}
+
+function objectsFromData(data) {
     if ( !isRecord(data) || !isRecord(data.network) || !isRecord(data.router) ) {
         throw new Error('Die Datei muss eine von Netspoc exportierte Topologie enthalten.')
     }
