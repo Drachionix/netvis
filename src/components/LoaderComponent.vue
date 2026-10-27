@@ -116,8 +116,9 @@ function useBackend() {
           <input type="text" class="input" id="destination"
                  :placeholder="path.destination" v-if="initName && !localObjects"
                  @input="e => path.destination = e.target.value"/><br>
-          <button class="submit" type="submit" :disabled="loading">Anzeigen</button>
+          <button v-if="localObjects || !initName" class="submit" type="submit" :disabled="loading">Anzeigen</button>
           <div v-if="initName" class="buttonRow">
+            <button v-if="!localObjects" class="submit" type="submit" :disabled="loading">Anzeigen</button>
             <button v-if="localObjects" class="submit" type="button" @click="useBackend"
                     :disabled="loading">Backend verwenden
             </button>
@@ -141,7 +142,7 @@ function useBackend() {
   background-color: #cecece;
   box-shadow: 0 0 5px #ff4212;
   border-radius: 5px;
-  padding: 0 10px;
+  padding: 0 10px 20px;
   z-index: 10;
 }
 
@@ -149,6 +150,9 @@ function useBackend() {
   outline: 3px dashed var(--buttonColor);
 }
 
+#file-upload {
+  display: none;
+}
 
 .data-source {
   margin-bottom: 20px;
