@@ -5,7 +5,7 @@ function isRecord(value) {
 export function parseObjects(text) {
     const data = JSON.parse(text)
     if ( !isRecord(data) || !isRecord(data.network) || !isRecord(data.router) ) {
-        throw new Error('Die Datei muss eine von Netspoc exportierte Topologie sein.')
+        throw new Error('Die Datei muss eine von Netspoc exportierte Topologie enthalten.')
     }
 
     const objects = new Map()

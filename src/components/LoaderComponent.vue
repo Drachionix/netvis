@@ -48,7 +48,7 @@ async function onObjectsChanged(event) {
     localObjects.value = parseObjects(await file.text())
     fileName.value = file.name
   } catch (error) {
-    fileError.value = `„${file.name}“ konnte nicht geladen werden: ${error.message}`
+    fileError.value = `${file.name}: ${error.message}`
   } finally {
     loading.value = false
     event.target.value = ""
@@ -67,7 +67,7 @@ async function onFileChanged(event) {
     ) ) throw new Error("Es wird ein gespeicherter netvis-Graph erwartet.")
     emit('submitted', data, undefined, localObjects.value)
   } catch (error) {
-    fileError.value = `„${file.name}“ konnte nicht geladen werden: ${error.message}`
+    fileError.value = `${file.name}: ${error.message}`
   } finally {
     loading.value = false
     event.target.value = ""
